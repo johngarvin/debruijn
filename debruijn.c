@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <inttypes.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 
 /* value of the nth bit of x */
 /* no dependences */
@@ -182,10 +182,9 @@ uint8_t is_interesting_coloring(ToShow show, uint64_t n, uint64_t x[n]) {
   exit(1);
 }
 
-void find_hypercube_colorings(uint8_t d, ToShow show) {
+void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t coloring) {
   const uint64_t n_vertices = 1<<d;
   uint8_t aa[n_vertices];  /* hypercube coloring being checked */
-  uint64_t a;              /* hypercube coloring being checked */
   uint8_t square;         /* square coloring being checked */
   uint64_t c_any[16];     /* count squares of each of 16 possible colorings */
   uint64_t c_iso[6];      /* count squares of each of 6 possible colorings up to
@@ -201,16 +200,17 @@ void find_hypercube_colorings(uint8_t d, ToShow show) {
   uint64_t a_perm;
   uint8_t c[d+1];
 
+  printf("Beginning of find_hypercube_colorings. a=%llx coloring=%llu\n", a, coloring);
+  
   /* if n_vertices is small enough, 'a' will fit in a uint64_t;
    * otherwise use an array */
   /* depends on 2 colors */
   const uint8_t need_big_a = (n_vertices > 64);
   
-  uint64_t coloring;     /* nth coloring is being checked */
   /* number of colorings to check */
   const uint64_t n_colorings = choose_half(n_vertices);
   uint64_t milestone_interval = 1ULL << 30;  /* print progress regularly */
-  uint64_t milestone = milestone_interval;
+  uint64_t milestone = coloring + milestone_interval;
   
   /* number of colorings in each bin if it were a perfect de Bruijn coloring */
   /* depends on square */
@@ -236,11 +236,9 @@ void find_hypercube_colorings(uint8_t d, ToShow show) {
     for (i = n_vertices / 2; i < n_vertices; i++) {
       aa[i] = 1;
     }
-  } else {
-    a = (1ULL << (n_vertices / 2)) - 1;
   }
-  
-  for (coloring = 0; coloring < n_colorings; coloring++) {
+
+  for (; coloring < n_colorings; coloring++) {
     /* The hypercube has d isomorphisms formed by swapping bits in each of d
      * dimensions. There's no need to check both a pattern 'a' and its
      * bit-swapped version. Check for duplicates. */
@@ -389,7 +387,13 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "What?");
     exit(1);
   }
-  uint8_t d = atoi(argv[1]);
+  char * end;
+  unsigned long d_big = strtoul(argv[1], &end, 0);
+  if (end[0] != '\0' || d_big > UINT8_MAX) {
+    fprintf(stderr, "I don't understand the first argument d (%lu)\n", d_big);
+    exit(1);
+  }
+  uint8_t d = (uint8_t)d_big;
   ToShow show;
   if (strcmp(argv[2], "all") == 0) {
     show = SHOW_ALL;
@@ -398,11 +402,27 @@ int main(int argc, char *argv[]) {
   } else if (strcmp(argv[2], "2") == 0) {
     show = SHOW_2;
   } else {
-    fprintf(stderr, "What?\n");
+    fprintf(stderr, "I don't understand the second argument: all, strict, or 2\n");
     exit(1);
   }
-  
-
-  find_hypercube_colorings(d, show);
+  uint64_t a = (1ULL << 32) - 1;
+  uint64_t coloring = 0;
+  if (argc == 4) {
+    fprintf(stderr, "I see a third argument 'a' but not a fourth argument 'coloring'\n");
+  } else if (argc == 5) {
+    uintmax_t a_big = strtoumax(argv[3], &end, 0);
+    if (end[0] != '\0' || a_big > UINT64_MAX) {
+      fprintf(stderr, "I don't understand the third argument a\n");
+      exit(1);
+    }
+    a = (uint64_t)a_big;
+    uintmax_t coloring_big = strtoumax(argv[4], &end, 0);
+    if (end[0] != '\0' || coloring_big > UINT64_MAX) {
+      fprintf(stderr, "I don't understand the fourth argument 'coloring.'\n");
+      exit(1);
+    }
+    coloring = (uint64_t)coloring_big;
+  }
+  find_hypercube_colorings(d, show, a, coloring);
   return 0;
 }
