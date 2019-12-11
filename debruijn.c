@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <errno.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -389,8 +390,12 @@ int main(int argc, char *argv[]) {
   }
   char * end;
   unsigned long d_big = strtoul(argv[1], &end, 0);
-  if (end[0] != '\0' || d_big > UINT8_MAX) {
+  if (end[0] != '\0') {
     fprintf(stderr, "I don't understand the first argument d (%lu)\n", d_big);
+    exit(1);
+  }
+  if (d_big > UINT8_MAX || errno == ERANGE) {
+    fprintf(stderr, "The first argument d is too big (max 256)\n");
     exit(1);
   }
   uint8_t d = (uint8_t)d_big;
@@ -402,7 +407,7 @@ int main(int argc, char *argv[]) {
   } else if (strcmp(argv[2], "2") == 0) {
     show = SHOW_2;
   } else {
-    fprintf(stderr, "I don't understand the second argument: all, strict, or 2\n");
+    fprintf(stderr, "I don't understand the second argument: must be 'all', 'strict', or '2'\n");
     exit(1);
   }
   uint64_t a = (1ULL << 32) - 1;
@@ -415,10 +420,18 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "I don't understand the third argument a\n");
       exit(1);
     }
+    if (a_big > UINT64_MAX || errno == ERANGE) {
+      fprintf(stderr, "The third argument 'a' is too big\n");
+      exit(1);
+    }
     a = (uint64_t)a_big;
     uintmax_t coloring_big = strtoumax(argv[4], &end, 0);
-    if (end[0] != '\0' || coloring_big > UINT64_MAX) {
-      fprintf(stderr, "I don't understand the fourth argument 'coloring.'\n");
+    if (end[0] != '\0') {
+      fprintf(stderr, "I don't understand the fourth argument 'coloring'.\n");
+      exit(1);
+    }
+    if (coloring_big > UINT64_MAX || errno == ERANGE) {
+      fprintf(stderr, "The fourth argument 'coloring' is too big.\n");
       exit(1);
     }
     coloring = (uint64_t)coloring_big;
