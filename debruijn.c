@@ -240,9 +240,21 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
   }
 
   for (; coloring < n_colorings; coloring++) {
-    /* The hypercube has d isomorphisms formed by swapping bits in each of d
-     * dimensions. There's no need to check both a pattern 'a' and its
-     * bit-swapped version. Check for duplicates. */
+    /* The hypercube has several automorphisms that enable us to save time; if
+       we have a coloring and a transformation of the same coloring (say,
+       with a reflection through one axis), we only need to check one of them.
+       We're iterating in lexical order, so we can skip any coloring 'a' if the
+       transformed version is less than 'a'. */
+
+    /* Check for isomorphisms due to changing the names of colors. */
+    /* depends on single value */
+    /* doesn't depend on square */
+    /* depends on 2 colors */
+    if (~a < a) {
+      goto skip;
+    }
+    /* Check the d isomorphisms formed by swapping bits in each of d
+     * dimensions (that is, mirror reflection through any axis). */
     /* depends on single value */
     /* doesn't depend on square */
     /* depends on 2 colors */
