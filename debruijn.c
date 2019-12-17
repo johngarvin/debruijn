@@ -317,14 +317,9 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
           }
           
           /* increment n, ignoring bit positions di and dj */
-          for (dk = 0; dk < d + 1; dk++) {
-            if (dk == di || dk == dj) continue;
-            if ((n & (1 << dk)) == 0) {
-              n = (n | (1 << dk));
-              break;
-            }
-            n = (n & ~(1 << dk));
-          }
+          /* (Knuth 7.1.3, p150) */
+          const uint64_t dmask = ~((1ULL << di) | (1ULL << dj));
+          n = ((n - dmask) & dmask);
         }
       }
     }
