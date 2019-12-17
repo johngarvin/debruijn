@@ -201,7 +201,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
   uint64_t a_perm;
   uint8_t c[d+1];
 
-  printf("Beginning of find_hypercube_colorings. a=%llx coloring=%llu\n", a, coloring);
+  printf("Beginning of find_hypercube_colorings. a=0x%llx coloring=%llu\n", a, coloring);
   
   /* if n_vertices is small enough, 'a' will fit in a uint64_t;
    * otherwise use an array */
