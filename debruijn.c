@@ -410,7 +410,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "I don't understand the second argument: must be 'all', 'strict', or '2'\n");
     exit(1);
   }
-  uint64_t a = (1ULL << 32) - 1;
+  uint64_t a = (1ULL << (1ULL << (d - 1))) - 1;
   uint64_t coloring = 0;
   if (argc == 4) {
     fprintf(stderr, "I see a third argument 'a' but not a fourth argument 'coloring'\n");
