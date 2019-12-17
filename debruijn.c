@@ -311,7 +311,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
 
           /* We can stop early if we already have too many in any bin. */
           if (show == SHOW_STRICT &&
-              (c_any[square] > perfect_per_bin_any ||
+              (c_any[square] > perfect_per_bin_any &&
                c_iso[coloring_bin[square]] > perfect_per_bin_iso)) {
             goto skip;
           }
