@@ -297,6 +297,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
     for (i = 0; i < 6; i++) {
       c_iso[i] = 0;
     }
+    uint8_t count_any = 1, count_iso = 1;
 
     /* for each square indicated by bit positions di and dj */
     /* depends on square */
@@ -318,14 +319,24 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
               nth_bit(a, n | (1 << di) | (1 << dj)) << 1 |
               nth_bit(a, n | (1 << dj));
           }
-          c_any[square]++;
-          c_iso[coloring_bin[square]]++;
+          if (count_any) {
+            c_any[square]++;
+          }
+          if (count_iso) {
+            c_iso[coloring_bin[square]]++;
+          }
 
           /* We can stop early if we already have too many in any bin. */
-          if (show == SHOW_STRICT &&
-              (c_any[square] > perfect_per_bin_any &&
-               c_iso[coloring_bin[square]] > perfect_per_bin_iso)) {
-            goto skip;
+          if (show == SHOW_STRICT) {
+            if (count_any && c_any[square] > perfect_per_bin_any) {
+              count_any = 0;
+            }
+            if (count_iso && c_iso[coloring_bin[square]] > perfect_per_bin_iso) {
+              count_iso = 0;
+            }
+            if (!count_any && !count_iso) {
+              goto skip;
+            }
           }
           
           /* increment n, ignoring bit positions di and dj */
