@@ -357,6 +357,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
       } else {
         print_coloring_a(n_vertices, a, 16, c_any);
       }
+      fflush(stdout);
     }
     if (is_interesting_coloring(show, 6, c_iso)) {
       printf("up to isomorphism:\t");
@@ -365,6 +366,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
       } else {
         print_coloring_a(n_vertices, a, 6, c_iso);
       }
+      fflush(stdout);
     }
     
     /* set a to the next combination and terminate if done */
@@ -393,6 +395,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
     /* no dependences */
     if (coloring == milestone) {
       printf("%f%% a=0x%016llx coloring=%llu/%llu\n", (double)coloring * 100 / n_colorings, a, coloring, n_colorings);
+      fflush(stdout);
       milestone += milestone_interval;
     }
   }
