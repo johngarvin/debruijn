@@ -377,17 +377,17 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
     if (need_big_a) {
       fprintf(stderr, "Error: I don't know how to move to the next combination for arrays yet\n");
       exit(1);
+      
     } else {
       /* Gosper's hack */
       uint64_t y = a & -a;  /* rightmost set bit of a, call it position p */
-      uint64_t z = a + y;   /* +1 to bits left of p */
+      uint64_t z = a + y;   /* increment left of p: 0 followed by 1s -> 1 followed by 0s */
       if ((n_vertices == 64 && z == 0) || z == (1 << n_vertices)) {
         break;
       }
-      /* a ^ z = 0s for bits unchanged by the +1, 1s changed, 0 p and after */
-      /* >> 2: now 0s, 1s up to p and p-1, 0s after */
-      /* / y: ? */
-      /* | z */
+      /* a ^ z = select 1s that need to be shifted right */
+      /* >> 2 / y: shift the 1s (2 + log_2 y) right */
+      /* | z: combine with incremented bits left of p */
       a = (((a ^ z) >> 2) / y) | z;
     }
 
