@@ -186,6 +186,7 @@ uint8_t is_interesting_coloring(ToShow show, uint64_t n, uint64_t x[n]) {
 void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t coloring) {
   const uint64_t n_vertices = 1<<d;
   uint8_t aa[n_vertices];  /* hypercube coloring being checked */
+  /* aa[n_vertices - 1] is most significant, aa[0] least significant */
   uint8_t square;         /* square coloring being checked */
   uint64_t c_any[16];     /* count squares of each of 16 possible colorings */
   uint64_t c_iso[6];      /* count squares of each of 6 possible colorings up to
@@ -232,10 +233,10 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
   /* doesn't depend on square */
   if (need_big_a) {
     for (i = 0; i < n_vertices / 2; i++) {
-      aa[i] = 0;
+      aa[i] = 1;
     }
     for (i = n_vertices / 2; i < n_vertices; i++) {
-      aa[i] = 1;
+      aa[i] = 0;
     }
   }
 
@@ -375,9 +376,34 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
     /* depends on single value */
   skip:
     if (need_big_a) {
-      fprintf(stderr, "Error: I don't know how to move to the next combination for arrays yet\n");
-      exit(1);
-      
+      /* TODO: check for termination */
+      uint64_t p, q;
+      /* start rightmost, search left, find location p of rightmost 1 */
+      for (i = 0; i < n_vertices; i++) {
+        if (aa[i] == 1) {
+          break;
+        }
+      }
+      p = i;
+      /* find location q of first 0 left of p */
+      for (; i < n_vertices; i++) {
+        if (aa[i] == 0) {
+          break;
+        }
+      }
+      uint64_t q = i;
+      /* at q and q - 1: 01 -> 10 */
+      aa[q] = 1;
+      aa[q - 1] = 0;
+      uint64_t mn = min(p, q - p - 1);
+      uint64_t mx = max(p, q - p - 1);
+      /* in rightmost q - 1 bits, shift q - p - 1 ones to rightpost position */
+      for (i = 0; i < mn; i++) {
+        aa[i] = 1;
+      }
+      for (i = mx; i < q - 1; i++) {
+        aa[i] = 0;
+      }
     } else {
       /* Gosper's hack */
       uint64_t y = a & -a;  /* rightmost set bit of a, call it position p */
