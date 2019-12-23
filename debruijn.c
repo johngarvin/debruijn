@@ -247,51 +247,54 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
        We're iterating in lexical order, so we can skip any coloring 'a' if the
        transformed version is less than 'a'. */
 
-    /* Check for isomorphisms due to changing the names of colors. */
-    /* depends on single value */
-    /* doesn't depend on square */
-    /* depends on 2 colors */
-    if (~a < a) {
-      goto skip;
-    }
-    /* Check the d isomorphisms formed by swapping bits in each of d
-     * dimensions (that is, mirror reflection through any axis). */
-    /* depends on single value */
-    /* doesn't depend on square */
-    /* depends on 2 colors */
-    for (i = 0; i < d; i++) {
-      if (toggle_bit_position(a, i) < a) {
+    if (!need_big_a) {
+      /* Check for isomorphisms due to changing the names of colors. */
+      /* depends on single value */
+      /* doesn't depend on square */
+      /* depends on 2 colors */
+      if (~a < a) {
         goto skip;
       }
-    }
-    /* Check for duplicates due to axis permutations. Use Heap's algorithm to
-     * iterate through all axis permutations using swaps */
-    /* doesn't depend on square */
-    /* depends on 2 colors */
-    a_perm = a;
-    for (i = 0; i < d+1; i++) {
-      c[i] = 0;
-    }
-    uint8_t k = 0;
-    
-    while (k < d) {
-      if (c[k] < k) {
-        if ((k & 1) == 0) {
-          a_perm = swap_bit_positions(a_perm, 0, k);
-        } else {
-          a_perm = swap_bit_positions(a_perm, c[k], k);
-        }
-        if (a_perm < a) {
+      /* Check the d isomorphisms formed by swapping bits in each of d
+       * dimensions (that is, mirror reflection through any axis). */
+      /* depends on single value */
+      /* doesn't depend on square */
+      /* depends on 2 colors */
+      for (i = 0; i < d; i++) {
+        if (toggle_bit_position(a, i) < a) {
           goto skip;
         }
-        c[k]++;
-        k = 0;
-      } else {
-        c[k] = 0;
-        k++;
+      }
+      /* Check for duplicates due to axis permutations. Use Heap's algorithm to
+       * iterate through all axis permutations using swaps */
+      /* doesn't depend on square */
+      /* depends on 2 colors */
+      a_perm = a;
+      for (i = 0; i < d+1; i++) {
+        c[i] = 0;
+      }
+      uint8_t k = 0;
+      
+      while (k < d) {
+        if (c[k] < k) {
+          if ((k & 1) == 0) {
+            a_perm = swap_bit_positions(a_perm, 0, k);
+          } else {
+            a_perm = swap_bit_positions(a_perm, c[k], k);
+          }
+          if (a_perm < a) {
+            goto skip;
+          }
+          c[k]++;
+          k = 0;
+        } else {
+          c[k] = 0;
+          k++;
+        }
       }
     }
     
+    /* Now count squares. */
     for (i = 0; i < 16; i++) {
       c_any[i] = 0;
     }
@@ -376,7 +379,6 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
     /* depends on single value */
   skip:
     if (need_big_a) {
-      /* TODO: check for termination */
       uint64_t p, q;
       /* start rightmost, search left, find location p of rightmost 1 */
       for (i = 0; i < n_vertices; i++) {
@@ -385,23 +387,33 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
         }
       }
       p = i;
+      assert(p != n_vertices);  /* array contains no 1s ?! */
       /* find location q of first 0 left of p */
       for (; i < n_vertices; i++) {
         if (aa[i] == 0) {
           break;
         }
       }
-      uint64_t q = i;
+      q = i;
+      if (q == n_vertices) {  /* last combination; we're done */
+        break;
+      }
       /* at q and q - 1: 01 -> 10 */
       aa[q] = 1;
       aa[q - 1] = 0;
-      uint64_t mn = min(p, q - p - 1);
-      uint64_t mx = max(p, q - p - 1);
+      uint64_t min, max;
+      if (p < q - p - 1) {
+        min = p;
+        max = q - p - 1;
+      } else {
+        min = q - p - 1;
+        max = p;
+      }
       /* in rightmost q - 1 bits, shift q - p - 1 ones to rightpost position */
-      for (i = 0; i < mn; i++) {
+      for (i = 0; i < min; i++) {
         aa[i] = 1;
       }
-      for (i = mx; i < q - 1; i++) {
+      for (i = max; i < q - 1; i++) {
         aa[i] = 0;
       }
     } else {
