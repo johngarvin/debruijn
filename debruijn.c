@@ -60,13 +60,25 @@ const uint64_t mask[6] = {0x5555555555555555,
  * 8-15, bits 16-23 with bits 24-31, etc. Equivalently, let each bit position in
  * a be swapped with the bit position gotten by swapping 0 and 1 in the bth
  * bit. */
-/* depends on single value, no array version */
 /* depends on 2 colors */
 /* doesn't depend on square */
-uint64_t toggle_bit_position(uint64_t a, uint8_t b) {
+uint64_t toggle_bit_position_a(uint64_t a, uint8_t b) {
   assert(b <= 6);
   const uint64_t bits = 1 << b;
   return ((a & mask[b]) << bits) | ((a & ~mask[b]) >> bits);
+}
+
+void toggle_bit_position_aa(uint64_t n_vertices, uint8_t aa[n_vertices], uint8_t b) {
+  uint64_t i, j;
+  uint8_t temp;
+  const uint64_t bits = 1 << b;
+  for (i = 0; i < n_vertices; i += 2 * bits) {
+    for (j = i; j < i + bits; j++) {
+      temp = aa[j];
+      aa[j] = aa[j + bits];
+      aa[j + bits] = temp;
+    }
+  }
 }
 
 /* depends on single value, no array version */
@@ -261,7 +273,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, 
       /* doesn't depend on square */
       /* depends on 2 colors */
       for (i = 0; i < d; i++) {
-        if (toggle_bit_position(a, i) < a) {
+        if (toggle_bit_position_a(a, i) < a) {
           goto skip;
         }
       }
