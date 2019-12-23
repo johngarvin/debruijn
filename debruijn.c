@@ -183,7 +183,7 @@ uint8_t is_interesting_coloring(ToShow show, uint64_t n, uint64_t x[n]) {
   exit(1);
 }
 
-void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t coloring) {
+void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, uint8_t global_count_iso, uint64_t a, uint64_t coloring) {
   const uint64_t n_vertices = 1<<d;
   uint8_t aa[n_vertices];  /* hypercube coloring being checked */
   /* aa[n_vertices - 1] is most significant, aa[0] least significant */
@@ -301,7 +301,8 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
     for (i = 0; i < 6; i++) {
       c_iso[i] = 0;
     }
-    uint8_t count_any = 1, count_iso = 1;
+    uint8_t count_any = global_count_any;
+    uint8_t count_iso = global_count_iso;
 
     /* for each square indicated by bit positions di and dj */
     /* depends on square */
@@ -354,7 +355,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
     /* depends on square */
     /* doesn't depend on single value (decides whether single value) */
     /* doesn't depend on 2 colors */
-    if (is_interesting_coloring(show, 16, c_any)) {
+    if (global_count_any && is_interesting_coloring(show, 16, c_any)) {
       printf("any orientation:\t");
       if (need_big_a) {
         print_coloring_aa(n_vertices, aa, 16, c_any);
@@ -363,7 +364,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
       }
       fflush(stdout);
     }
-    if (is_interesting_coloring(show, 6, c_iso)) {
+    if (global_count_iso && is_interesting_coloring(show, 6, c_iso)) {
       printf("up to isomorphism:\t");
       if (need_big_a) {
         print_coloring_aa(n_vertices, aa, 6, c_iso);
@@ -443,7 +444,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint64_t a, uint64_t color
 /* depends on 2 colors */
 /* doesn't depend on single value */
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
+  if (argc < 3) {
     fprintf(stderr, "What?");
     exit(1);
   }
@@ -469,32 +470,46 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "I don't understand the second argument: must be 'all', 'strict', or '2'\n");
     exit(1);
   }
+  uint8_t global_count_any, global_count_iso;
+  if (strcmp(argv[3], "any") == 0) {
+    global_count_any = 1;
+    global_count_iso = 0;
+  } else if (strcmp(argv[3], "iso") == 0) {
+    global_count_any = 0;
+    global_count_iso = 1;
+  } else if (strcmp(argv[3], "both") == 0) {
+    global_count_any = 1;
+    global_count_iso = 1;
+  } else {
+    fprintf(stderr, "I don't understand the third argument: must be 'any', 'iso', or 'both'\n");
+    exit(1);
+  }
   uint64_t a = (1ULL << (1ULL << (d - 1))) - 1;
   uint64_t coloring = 0;
-  if (argc == 4) {
-    fprintf(stderr, "I see a third argument 'a' but not a fourth argument 'coloring'\n");
-  } else if (argc == 5) {
-    uintmax_t a_big = strtoumax(argv[3], &end, 0);
+  if (argc == 5) {
+    fprintf(stderr, "I see a fourth argument 'a' but not a fifth argument 'coloring'\n");
+  } else if (argc == 6) {
+    uintmax_t a_big = strtoumax(argv[4], &end, 0);
     if (end[0] != '\0' || a_big > UINT64_MAX) {
-      fprintf(stderr, "I don't understand the third argument a\n");
+      fprintf(stderr, "I don't understand the fourth argument a\n");
       exit(1);
     }
     if (a_big > UINT64_MAX || errno == ERANGE) {
-      fprintf(stderr, "The third argument 'a' is too big\n");
+      fprintf(stderr, "The fourth argument 'a' is too big\n");
       exit(1);
     }
     a = (uint64_t)a_big;
-    uintmax_t coloring_big = strtoumax(argv[4], &end, 0);
+    uintmax_t coloring_big = strtoumax(argv[5], &end, 0);
     if (end[0] != '\0') {
-      fprintf(stderr, "I don't understand the fourth argument 'coloring'.\n");
+      fprintf(stderr, "I don't understand the fifth argument 'coloring'.\n");
       exit(1);
     }
     if (coloring_big > UINT64_MAX || errno == ERANGE) {
-      fprintf(stderr, "The fourth argument 'coloring' is too big.\n");
+      fprintf(stderr, "The fifth argument 'coloring' is too big.\n");
       exit(1);
     }
     coloring = (uint64_t)coloring_big;
   }
-  find_hypercube_colorings(d, show, a, coloring);
+  find_hypercube_colorings(d, show, global_count_any, global_count_iso, a, coloring);
   return 0;
 }
