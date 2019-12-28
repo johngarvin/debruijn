@@ -84,7 +84,7 @@ void toggle_bit_position_aa(uint64_t n_vertices, uint8_t aa[n_vertices], uint8_t
 /* depends on single value, no array version */
 /* depends on 2 colors */
 /* doesn't depend on square */
-uint64_t swap_bit_positions(uint64_t a, uint8_t b0, uint8_t b1) {
+uint64_t swap_bit_positions_a(uint64_t a, uint8_t b0, uint8_t b1) {
   assert(b0 <= 6);
   assert(b1 <= 6);
   assert(b0 < b1);
@@ -94,6 +94,21 @@ uint64_t swap_bit_positions(uint64_t a, uint8_t b0, uint8_t b1) {
   return (((a & mask0) << shift) |
           ((a & mask1) >> shift) |
           (a & ~mask0 & ~mask1));
+}
+
+void swap_bit_positions_aa(uint64_t n_vertices, uint8_t aa[n_vertices], uint8_t b0, uint8_t b1) {
+  uint64_t i;
+  uint8_t temp;
+  assert(b0 < b1);
+  /* TODO: could speed this up by not visiting all elements, only ones with b0'th bit 0 and b1'th bit 1 */
+  for (i = 0; i < n_vertices; i++) {
+    if (nth_bit(i, b0) == 0 && nth_bit(i, b1) == 1) {
+      uint64_t ii = ((i | ~(1 << b1)) & (1 << b0));
+      temp = aa[i];
+      aa[ii] = aa[i];
+      aa[i] = temp;
+    }
+  }
 }
 
 /* no dependences */
@@ -290,9 +305,9 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, 
       while (k < d) {
         if (c[k] < k) {
           if ((k & 1) == 0) {
-            a_perm = swap_bit_positions(a_perm, 0, k);
+            a_perm = swap_bit_positions_a(a_perm, 0, k);
           } else {
-            a_perm = swap_bit_positions(a_perm, c[k], k);
+            a_perm = swap_bit_positions_a(a_perm, c[k], k);
           }
           if (a_perm < a) {
             goto skip;
