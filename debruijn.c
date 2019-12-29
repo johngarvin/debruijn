@@ -212,7 +212,7 @@ uint8_t is_interesting_coloring(ToShow show, uint64_t n, uint64_t x[n]) {
 
 void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, uint8_t global_count_iso, uint64_t a, uint64_t coloring) {
   const uint64_t n_vertices = 1<<d;
-  uint8_t aa[n_vertices];  /* hypercube coloring being checked */
+  uint8_t * aa = malloc(n_vertices * sizeof(uint8_t));  /* hypercube coloring being checked */
   /* aa[n_vertices - 1] is most significant, aa[0] least significant */
   uint8_t square;         /* square coloring being checked */
   uint64_t c_any[16];     /* count squares of each of 16 possible colorings */
@@ -465,6 +465,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, 
       milestone += milestone_interval;
     }
   }
+  free(aa);
 }
 
 /* depends on square */
