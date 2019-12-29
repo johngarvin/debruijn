@@ -471,8 +471,8 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, 
 /* depends on 2 colors */
 /* doesn't depend on single value */
 int main(int argc, char *argv[]) {
-  if (argc < 3) {
-    fprintf(stderr, "What?");
+  if (argc < 4) {
+    fprintf(stderr, "What?\n");
     exit(1);
   }
   char * end;
