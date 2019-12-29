@@ -143,8 +143,8 @@ const uint8_t coloring_bin[16] = {0,  /* 0000 */
 /* n choose n/2 */
 /* doesn't depend on single value, but d must be <= 64 */
 /* depends on 2 colors */
-/* TODO: What values of n cause overflow? */
 uint64_t choose_half(uint64_t n) {
+  assert(n <= 66);  /* otherwise, result does not fit in a uint64_t */
   uint64_t x = 1;
   uint64_t i;
   for (i = 0; i < n/2; i++) {
@@ -482,8 +482,8 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "I don't understand the first argument d (%lu)\n", d_big);
     exit(1);
   }
-  if (d_big > UINT8_MAX || errno == ERANGE) {
-    fprintf(stderr, "The first argument d is too big (max 256)\n");
+  if (d_big > 6) {
+    fprintf(stderr, "The first argument d is too big (max 6)\n");
     exit(1);
   }
   uint8_t d = (uint8_t)d_big;
