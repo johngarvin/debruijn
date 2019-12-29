@@ -64,14 +64,14 @@ const uint64_t mask[6] = {0x5555555555555555,
 /* doesn't depend on square */
 uint64_t toggle_bit_position_a(uint64_t a, uint8_t b) {
   assert(b <= 6);
-  const uint64_t bits = 1 << b;
+  const uint64_t bits = 1ULL << b;
   return ((a & mask[b]) << bits) | ((a & ~mask[b]) >> bits);
 }
 
 void toggle_bit_position_aa(uint64_t n_vertices, uint8_t aa[n_vertices], uint8_t b) {
   uint64_t i, j;
   uint8_t temp;
-  const uint64_t bits = 1 << b;
+  const uint64_t bits = 1ULL << b;
   for (i = 0; i < n_vertices; i += 2 * bits) {
     for (j = i; j < i + bits; j++) {
       temp = aa[j];
@@ -103,7 +103,7 @@ void swap_bit_positions_aa(uint64_t n_vertices, uint8_t aa[n_vertices], uint8_t 
   /* TODO: could speed this up by not visiting all elements, only ones with b0'th bit 0 and b1'th bit 1 */
   for (i = 0; i < n_vertices; i++) {
     if (nth_bit(i, b0) == 0 && nth_bit(i, b1) == 1) {
-      uint64_t ii = ((i | ~(1 << b1)) & (1 << b0));
+      uint64_t ii = ((i | ~(1ULL << b1)) & (1ULL << b0));
       temp = aa[i];
       aa[ii] = aa[i];
       aa[i] = temp;
@@ -161,7 +161,7 @@ uint64_t choose_half(uint64_t n) {
 uint64_t hypercube_squares(uint8_t d) {
   if (d < 2) return 0;
   if (d == 2) return 1;
-  return d * (d-1) * (1 << (d-3));
+  return d * (d-1) * (1ULL << (d-3));
 }
 
 /* The number of distinct values in the array x with length n */
@@ -211,7 +211,7 @@ uint8_t is_interesting_coloring(ToShow show, uint64_t n, uint64_t x[n]) {
 }
 
 void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, uint8_t global_count_iso, uint64_t a, uint64_t coloring) {
-  const uint64_t n_vertices = 1<<d;
+  const uint64_t n_vertices = 1ULL << d;
   uint8_t * aa = malloc(n_vertices * sizeof(uint8_t));  /* hypercube coloring being checked */
   /* aa[n_vertices - 1] is most significant, aa[0] least significant */
   uint8_t square;         /* square coloring being checked */
@@ -448,7 +448,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, 
       /* Gosper's hack */
       uint64_t y = a & -a;  /* rightmost set bit of a, call it position p */
       uint64_t z = a + y;   /* increment left of p: 0 followed by 1s -> 1 followed by 0s */
-      if ((n_vertices == 64 && z == 0) || z == (1 << n_vertices)) {
+      if ((n_vertices == 64 && z == 0) || z == (1ULL << n_vertices)) {
         break;
       }
       /* a ^ z = select 1s that need to be shifted right */
