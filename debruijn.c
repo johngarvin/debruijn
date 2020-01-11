@@ -48,6 +48,42 @@ void print_coloring_a(uint64_t n_a, uint64_t a,
   printf("\n");
 }
 
+/* Binomial coefficient */
+/* fxtbook ch. 6, pp. 176-7 */
+uint64_t choose(uint64_t n, uint64_t k) {
+  if (k > n) {
+    return 0;
+  }
+  if (k == 0 || k == n) {
+    return 1;
+  }
+  uint64_t b = n - k + 1;
+  uint64_t f = b;
+  for (uint64_t j = 2; j <= k; j++) {
+    ++f;
+    b *= f;
+    b /= j;
+  }
+  return b;
+}
+
+/* Determine the ordering of the given arrangement in lexical order */
+uint64_t unrank(uint64_t x) {
+  uint8_t b[64];      /* index of each set bit */
+  uint8_t n = 0;
+  uint8_t i;
+  for (i = 0; i < 64; i++) {
+    if (nth_bit(x, i)) {
+      b[n++] = i;
+    }
+  }
+  uint64_t rank = 0;
+  for (i = 0; i < n; i++) {
+    rank += choose(b[i], i + 1);
+  }
+  return rank;
+}
+
 const uint64_t mask[6] = {0x5555555555555555,
                           0x3333333333333333,
                           0x0f0f0f0f0f0f0f0f,
@@ -268,6 +304,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, 
   }
 
   for (; coloring < n_colorings; coloring++) {
+    assert(coloring == unrank(a));
     /* The hypercube has several automorphisms that enable us to save time; if
        we have a coloring and a transformation of the same coloring (say,
        with a reflection through one axis), we only need to check one of them.
