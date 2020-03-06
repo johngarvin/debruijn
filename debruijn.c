@@ -92,7 +92,7 @@ const uint64_t mask[6] = {0x5555555555555555,
                           0x00000000ffffffff};
 
 /* Swap consecutive groups of 2^b bits with their neighbors. For example, b=0
- * swaps bit 0 with bit 1, bit 2 with bit 3, etc.; b=3 sways bits 0-7 with bits
+ * swaps bit 0 with bit 1, bit 2 with bit 3, etc.; b=3 swaps bits 0-7 with bits
  * 8-15, bits 16-23 with bits 24-31, etc. Equivalently, let each bit position in
  * a be swapped with the bit position gotten by swapping 0 and 1 in the bth
  * bit. */
