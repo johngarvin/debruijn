@@ -246,6 +246,68 @@ uint8_t is_interesting_coloring(ToShow show, uint64_t n, uint64_t x[n]) {
   exit(1);
 }
 
+/* The hypercube has several automorphisms that enable us to save time; if
+   we have a coloring and a transformation of the same coloring (say,
+   with a reflection through one axis), we only need to check one of them.
+   We're iterating in lexical order, so we can skip any coloring 'a' if the
+   transformed version is less than 'a'. */
+uint8_t skippable_a(uint8_t d, uint64_t a) {
+  uint64_t i;
+  uint8_t k;
+
+  /* used in Heap's algorithm to generate permutations */
+  uint64_t a_perm;
+  uint8_t c[d+1];
+
+  /* Check for isomorphisms due to changing the names of colors. */
+  /* depends on single value */
+  /* doesn't depend on square */
+  /* depends on 2 colors */
+  if (~a < a) {
+    return 1;
+  }
+
+  /* Check the d isomorphisms formed by swapping bits in each of d
+   * dimensions (that is, mirror reflection through any axis). */
+  /* depends on single value */
+  /* doesn't depend on square */
+  /* depends on 2 colors */
+  for (i = 0; i < d; i++) {
+    if (toggle_bit_position_a(a, i) < a) {
+      return 1;
+    }
+  }
+
+  /* Check for duplicates due to axis permutations. Use Heap's algorithm to
+   * iterate through all axis permutations using swaps */
+  /* doesn't depend on square */
+  /* depends on 2 colors */
+  a_perm = a;
+  for (i = 0; i < d+1; i++) {
+    c[i] = 0;
+  }
+
+  k = 0;
+  while (k < d) {
+    if (c[k] < k) {
+      if ((k & 1) == 0) {
+        a_perm = swap_bit_positions_a(a_perm, 0, k);
+      } else {
+        a_perm = swap_bit_positions_a(a_perm, c[k], k);
+      }
+      if (a_perm < a) {
+        return 1;
+      }
+      c[k]++;
+      k = 0;
+    } else {
+      c[k] = 0;
+      k++;
+    }
+  }
+  return 0;
+}
+
 void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, uint8_t global_count_iso, uint64_t a, uint64_t coloring) {
   const uint64_t n_vertices = 1ULL << d;
   uint8_t * aa = malloc(n_vertices * sizeof(uint8_t));  /* hypercube coloring being checked */
@@ -256,14 +318,8 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, 
                            * isomorphism */
   uint64_t n;             /* least vertex of current square; 'di'th and 'dj'th
                            * bit of n determine which vertex of the square */
-  uint8_t di, dj, dk;
+  uint8_t di, dj;
   uint64_t i;
-
-  /* used in Heap's algorithm to generate permutations */
-  uint8_t p[d];
-  uint8_t p_temp;
-  uint64_t a_perm;
-  uint8_t c[d+1];
 
   printf("Beginning of find_hypercube_colorings. a=0x%llx coloring=%llu\n", a, coloring);
   
@@ -305,59 +361,12 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, 
 
   for (; coloring < n_colorings; coloring++) {
     assert(coloring == unrank(a));
-    /* The hypercube has several automorphisms that enable us to save time; if
-       we have a coloring and a transformation of the same coloring (say,
-       with a reflection through one axis), we only need to check one of them.
-       We're iterating in lexical order, so we can skip any coloring 'a' if the
-       transformed version is less than 'a'. */
 
-    if (!need_big_a) {
-      /* Check for isomorphisms due to changing the names of colors. */
-      /* depends on single value */
-      /* doesn't depend on square */
-      /* depends on 2 colors */
-      if (~a < a) {
-        goto skip;
-      }
-      /* Check the d isomorphisms formed by swapping bits in each of d
-       * dimensions (that is, mirror reflection through any axis). */
-      /* depends on single value */
-      /* doesn't depend on square */
-      /* depends on 2 colors */
-      for (i = 0; i < d; i++) {
-        if (toggle_bit_position_a(a, i) < a) {
-          goto skip;
-        }
-      }
-      /* Check for duplicates due to axis permutations. Use Heap's algorithm to
-       * iterate through all axis permutations using swaps */
-      /* doesn't depend on square */
-      /* depends on 2 colors */
-      a_perm = a;
-      for (i = 0; i < d+1; i++) {
-        c[i] = 0;
-      }
-      uint8_t k = 0;
-      
-      while (k < d) {
-        if (c[k] < k) {
-          if ((k & 1) == 0) {
-            a_perm = swap_bit_positions_a(a_perm, 0, k);
-          } else {
-            a_perm = swap_bit_positions_a(a_perm, c[k], k);
-          }
-          if (a_perm < a) {
-            goto skip;
-          }
-          c[k]++;
-          k = 0;
-        } else {
-          c[k] = 0;
-          k++;
-        }
-      }
+    /* Skip if this pattern is a permutation of a pattern we've already seen */
+    if (!need_big_a && skippable_a(d, a)) {
+      goto skip;
     }
-    
+
     /* Now count squares. */
     for (i = 0; i < 16; i++) {
       c_any[i] = 0;
