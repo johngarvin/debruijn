@@ -308,17 +308,90 @@ uint8_t skippable_a(uint8_t d, uint64_t a) {
   return 0;
 }
 
+/* Count squares in given pattern. Fills the contents of c_any and c_iso. */
+void count_squares(uint64_t c_any[16],
+                   uint64_t c_iso[6],
+                   uint8_t d,
+                   uint8_t need_big_a,
+                   uint64_t a,
+                   uint64_t n_vertices,
+                   uint8_t aa[n_vertices],
+                   ToShow show,
+                   uint8_t global_count_any,
+                   uint8_t global_count_iso,
+                   uint64_t perfect_per_bin_any,
+                   uint64_t perfect_per_bin_iso) {
+  uint64_t i;
+  uint8_t di, dj;
+  uint64_t n;             /* least vertex of current square; 'di'th and 'dj'th
+                           * bit of n determine which vertex of the square */
+  uint8_t square;         /* square coloring being checked */
+
+  for (i = 0; i < 16; i++) {
+    c_any[i] = 0;
+  }
+  for (i = 0; i < 6; i++) {
+    c_iso[i] = 0;
+  }
+  uint8_t count_any = global_count_any;
+  uint8_t count_iso = global_count_iso;
+
+  /* for each square indicated by bit positions di and dj */
+  /* depends on square */
+  /* depends on 2 colors */
+  for (di = 0; di < d - 1; di++) {
+    for (dj = di + 1; dj < d; dj++) {
+      n = 0;
+      while (n != n_vertices) {
+        if (need_big_a) {
+          square =
+            (aa[n] << 3) |                          /* 00 */
+            (aa[n | (1 << di)] << 2) |              /* 01 */
+            (aa[n | (1 << di) | (1 << dj)] << 1) |  /* 11 */
+             aa[n | (1 << dj)];                     /* 10 */
+        } else {
+          square =
+            nth_bit(a, n) << 3 |
+            nth_bit(a, n | (1 << di)) << 2 |
+            nth_bit(a, n | (1 << di) | (1 << dj)) << 1 |
+            nth_bit(a, n | (1 << dj));
+        }
+        if (count_any) {
+          c_any[square]++;
+        }
+        if (count_iso) {
+          c_iso[coloring_bin[square]]++;
+        }
+
+        /* We can stop early if we already have too many in any bin. */
+        if (show == SHOW_STRICT) {
+          if (count_any && c_any[square] > perfect_per_bin_any) {
+            count_any = 0;
+          }
+          if (count_iso && c_iso[coloring_bin[square]] > perfect_per_bin_iso) {
+            count_iso = 0;
+          }
+          if (!count_any && !count_iso) {
+            return;
+          }
+        }
+
+        /* increment n, ignoring bit positions di and dj */
+        /* (Knuth 7.1.3, p150) */
+        const uint64_t dmask = ~((1ULL << di) | (1ULL << dj));
+        n = ((n - dmask) & dmask);
+      }
+    }
+  }
+}
+
 void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, uint8_t global_count_iso, uint64_t a, uint64_t coloring) {
   const uint64_t n_vertices = 1ULL << d;
   uint8_t * aa = malloc(n_vertices * sizeof(uint8_t));  /* hypercube coloring being checked */
   /* aa[n_vertices - 1] is most significant, aa[0] least significant */
-  uint8_t square;         /* square coloring being checked */
   uint64_t c_any[16];     /* count squares of each of 16 possible colorings */
   uint64_t c_iso[6];      /* count squares of each of 6 possible colorings up to
                            * isomorphism */
-  uint64_t n;             /* least vertex of current square; 'di'th and 'dj'th
-                           * bit of n determine which vertex of the square */
-  uint8_t di, dj;
   uint64_t i;
 
   printf("Beginning of find_hypercube_colorings. a=0x%llx coloring=%llu\n", a, coloring);
@@ -368,62 +441,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, 
     }
 
     /* Now count squares. */
-    for (i = 0; i < 16; i++) {
-      c_any[i] = 0;
-    }
-    for (i = 0; i < 6; i++) {
-      c_iso[i] = 0;
-    }
-    uint8_t count_any = global_count_any;
-    uint8_t count_iso = global_count_iso;
-
-    /* for each square indicated by bit positions di and dj */
-    /* depends on square */
-    /* depends on 2 colors */
-    for (di = 0; di < d - 1; di++) {
-      for (dj = di + 1; dj < d; dj++) {
-        n = 0;
-        while (n != n_vertices) {
-          if (need_big_a) {
-            square =
-              (aa[n] << 3) |                          /* 00 */
-              (aa[n | (1 << di)] << 2) |              /* 01 */
-              (aa[n | (1 << di) | (1 << dj)] << 1) |  /* 11 */
-               aa[n | (1 << dj)];                     /* 10 */
-          } else {
-            square =
-              nth_bit(a, n) << 3 |
-              nth_bit(a, n | (1 << di)) << 2 |
-              nth_bit(a, n | (1 << di) | (1 << dj)) << 1 |
-              nth_bit(a, n | (1 << dj));
-          }
-          if (count_any) {
-            c_any[square]++;
-          }
-          if (count_iso) {
-            c_iso[coloring_bin[square]]++;
-          }
-
-          /* We can stop early if we already have too many in any bin. */
-          if (show == SHOW_STRICT) {
-            if (count_any && c_any[square] > perfect_per_bin_any) {
-              count_any = 0;
-            }
-            if (count_iso && c_iso[coloring_bin[square]] > perfect_per_bin_iso) {
-              count_iso = 0;
-            }
-            if (!count_any && !count_iso) {
-              goto skip;
-            }
-          }
-          
-          /* increment n, ignoring bit positions di and dj */
-          /* (Knuth 7.1.3, p150) */
-          const uint64_t dmask = ~((1ULL << di) | (1ULL << dj));
-          n = ((n - dmask) & dmask);
-        }
-      }
-    }
+    count_squares(c_any, c_iso, d, need_big_a, a, n_vertices, aa, show, global_count_any, global_count_iso, perfect_per_bin_any, perfect_per_bin_iso);
 
     /* depends on square */
     /* doesn't depend on single value (decides whether single value) */
