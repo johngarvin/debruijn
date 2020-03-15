@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -17,25 +18,25 @@ BitString * copy_BitString_i(BitString * self);
 BitString * copy_BitString_a(BitString * self);
 void destroy_BitString_i(BitString * self);
 void destroy_BitString_a(BitString * self);
-uint8_t less_i(BitString * self, BitString * other);
-uint8_t less_a(BitString * self, BitString * other);
+bool less_i(BitString * self, BitString * other);
+bool less_a(BitString * self, BitString * other);
 uint8_t nth_bit_i(BitString * self, uint8_t n);
 uint8_t nth_bit_a(BitString * self, uint8_t n);
 void toggle_bit_position_i(BitString * self, uint8_t b);
 void toggle_bit_position_a(BitString * self, uint8_t b);
 void swap_bit_positions_i(BitString * self, uint8_t b0, uint8_t b1);
 void swap_bit_positions_a(BitString * self, uint8_t b0, uint8_t b1);
-uint8_t increment_combination_i(BitString * self);
-uint8_t increment_combination_a(BitString * self);
+bool increment_combination_i(BitString * self);
+bool increment_combination_a(BitString * self);
 
 typedef struct BitStringMethodsS {
   BitString * (* copy)(BitString * self);
   void (* destroy)(BitString * self);
-  uint8_t (* less)(BitString * self, BitString * other);
+  bool (* less)(BitString * self, BitString * other);
   uint8_t (* nth_bit)(BitString * self, uint8_t n);
   void (* toggle_bit_position)(BitString * self, uint8_t b);
   void (* swap_bit_positions)(BitString * self, uint8_t b0, uint8_t b1);
-  uint8_t (* increment_combination)(BitString * self);
+  bool (* increment_combination)(BitString * self);
 } BitStringMethods;
 
 const BitStringMethods BitStringMethodsInt = {
@@ -112,22 +113,22 @@ uint8_t nth_bit_a(BitString * self, uint8_t n) {
   return self->data.aa[n];
 }
 
-uint8_t less_i(BitString * self, BitString * other) {
+bool less_i(BitString * self, BitString * other) {
   return self->data.a < other->data.a;
 }
 
-uint8_t less_a(BitString * self, BitString * other) {
+bool less_a(BitString * self, BitString * other) {
   assert(self->size == other->size);
   uint64_t i = self->size;
   do {
     --i;
     if (self->data.aa[i] < other->data.aa[i]) {
-      return 1;
+      return true;
     } else if (self->data.aa[i] > other->data.aa[i]) {
-      return 0;
+      return false;
     }
   } while (i != 0);
-  return 0;
+  return false;
 }
 
 /* Swap consecutive groups of 2^b bits with their neighbors. For example, b=0
@@ -188,24 +189,24 @@ void swap_bit_positions_a(BitString * self, uint8_t b0, uint8_t b1) {
 }
 
 /* Increment self to the next combination; that is, the pattern that has the
- * same number of 0s and 1s that is lexically next. Return 1 if we are at the
- * last one, 0 otherwise */
-uint8_t increment_combination_i(BitString * self) {
+ * same number of 0s and 1s that is lexically next. Return true if we are at the
+ * last combination, false otherwise */
+bool increment_combination_i(BitString * self) {
   uint64_t a = self->data.a;
   /* Gosper's hack */
   uint64_t y = a & -a;  /* rightmost set bit of a, call it position p */
   uint64_t z = a + y;   /* increment left of p: 0 followed by 1s -> 1 followed by 0s */
   if ((self->size == 64 && z == 0) || z == (1ULL << self->size)) {
-    return 1;
+    return true;
   }
   /* a ^ z = select 1s that need to be shifted right */
   /* >> 2 / y: shift the 1s (2 + log_2 y) right */
   /* | z: combine with incremented bits left of p */
   self->data.a = (((a ^ z) >> 2) / y) | z;
-  return 0;
+  return false;
 }
 
-uint8_t increment_combination_a(BitString * self) {
+bool increment_combination_a(BitString * self) {
   uint8_t * aa = self->data.aa;
   uint64_t i, p, q;
   /* start rightmost, search left, find location p of rightmost 1 */
@@ -224,7 +225,7 @@ uint8_t increment_combination_a(BitString * self) {
   }
   q = i;
   if (q == self->size) {  /* last combination; we're done */
-    return 1;
+    return true;
   }
   /* at q and q - 1: 01 -> 10 */
   aa[q] = 1;
@@ -244,10 +245,10 @@ uint8_t increment_combination_a(BitString * self) {
   for (i = max; i < q - 1; i++) {
     aa[i] = 0;
   }
-  return 0;
+  return false;
 }
 
-uint8_t skippable(BitString * a, uint8_t d) {
+bool skippable(BitString * a, uint8_t d) {
   uint64_t i;
   uint8_t k;
 
@@ -255,7 +256,7 @@ uint8_t skippable(BitString * a, uint8_t d) {
   /* doesn't depend on square */
   /* depends on 2 colors */
   if (a->m->nth_bit(a, a->size - 1) == 1) {
-    return 1;
+    return true;
   }
 
   /* Check the d isomorphisms formed by swapping bits in each of d
@@ -268,7 +269,7 @@ uint8_t skippable(BitString * a, uint8_t d) {
     toggled->m->toggle_bit_position(toggled, i);
     if (toggled->m->less(toggled, a)) {
       toggled->m->destroy(toggled);
-      return 1;
+      return true;
     } else {
       /* back to normal */
       toggled->m->toggle_bit_position(toggled, i);
@@ -296,7 +297,7 @@ uint8_t skippable(BitString * a, uint8_t d) {
       }
       if (perm->m->less(perm, a)) {
         perm->m->destroy(perm);
-        return 1;
+        return true;
       }
       c[k]++;
       k = 0;
@@ -306,7 +307,7 @@ uint8_t skippable(BitString * a, uint8_t d) {
     }
   }
   perm->m->destroy(perm);
-  return 0;
+  return false;
 }
 
 void print(BitString * bits) {
@@ -419,17 +420,17 @@ uint64_t hypercube_squares(uint8_t d) {
 /* no dependences */
 uint64_t distinct_values(uint64_t n, uint64_t x[n]) {
   uint64_t i, j;
-  uint8_t eq[n];          /* 1 if corresponding element of c is equal to
-                           * some element of c with a smaller index */
+  bool eq[n];          /* true if corresponding element of c is equal to
+                        * some element of c with a smaller index */
   uint64_t distinct_values = n;
 
   for (i = 0; i < n; i++) {
-    eq[i] = 0;
+    eq[i] = false;
   }
   for (i = 0; i < n - 1; i++) {
     for (j = i + 1; j < n; j++) {
       if (!eq[j] && x[i] == x[j]) {
-        eq[j] = 1;
+        eq[j] = true;
         distinct_values--;
       }
     }
@@ -439,19 +440,19 @@ uint64_t distinct_values(uint64_t n, uint64_t x[n]) {
 
 /* whether all n values in the array x are the same */
 /* no dependences */
-uint8_t all_same(uint64_t n, uint64_t x[n]) {
+bool all_same(uint64_t n, uint64_t x[n]) {
   uint64_t i;
 
   for (i = 1; i < n; i++) {
-    if (x[0] != x[i]) return 0;
+    if (x[0] != x[i]) return false;
   }
-  return 1;
+  return true;
 }
 
 /* no dependences */
-uint8_t is_interesting_coloring(ToShow show, uint64_t n, uint64_t x[n]) {
+bool is_interesting_coloring(ToShow show, uint64_t n, uint64_t x[n]) {
   if (show == SHOW_ALL) {
-    return 1;
+    return true;
   } else if (show == SHOW_STRICT) {
     return all_same(n, x);
   } else if (show == SHOW_2) {
@@ -467,8 +468,8 @@ void count_squares(uint64_t c_any[16],
                    uint8_t d,
                    BitString * b,
                    ToShow show,
-                   uint8_t global_count_any,
-                   uint8_t global_count_iso,
+                   bool global_count_any,
+                   bool global_count_iso,
                    uint64_t perfect_per_bin_any,
                    uint64_t perfect_per_bin_iso) {
   uint64_t i;
@@ -483,8 +484,8 @@ void count_squares(uint64_t c_any[16],
   for (i = 0; i < 6; i++) {
     c_iso[i] = 0;
   }
-  uint8_t count_any = global_count_any;
-  uint8_t count_iso = global_count_iso;
+  bool count_any = global_count_any;
+  bool count_iso = global_count_iso;
 
   /* for each square indicated by bit positions di and dj */
   /* depends on square */
@@ -507,10 +508,10 @@ void count_squares(uint64_t c_any[16],
         /* We can stop early if we already have too many in any bin. */
         if (show == SHOW_STRICT) {
           if (count_any && c_any[square] > perfect_per_bin_any) {
-            count_any = 0;
+            count_any = false;
           }
           if (count_iso && c_iso[coloring_bin[square]] > perfect_per_bin_iso) {
-            count_iso = 0;
+            count_iso = false;
           }
           if (!count_any && !count_iso) {
             return;
@@ -526,13 +527,13 @@ void count_squares(uint64_t c_any[16],
   }
 }
 
-void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, uint8_t global_count_iso, uint64_t a, uint64_t coloring) {
+void find_hypercube_colorings(uint8_t d, ToShow show, bool global_count_any, bool global_count_iso, uint64_t a, uint64_t coloring) {
   const uint64_t n_vertices = 1ULL << d;
   uint64_t c_any[16];     /* count squares of each of 16 possible colorings */
   uint64_t c_iso[6];      /* count squares of each of 6 possible colorings up to
                            * isomorphism */
   uint64_t i;
-  uint8_t last_combination;
+  bool last_combination;
 
   printf("Beginning of find_hypercube_colorings. a=0x%llx coloring=%llu\n", a, coloring);
 
@@ -541,7 +542,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, uint8_t global_count_any, 
   /* depends on 2 colors */
   /* doesn't depend on square */
   BitString * b;
-  const uint8_t need_big_a = (n_vertices > 64);
+  const bool need_big_a = (n_vertices > 64);
 
   if (need_big_a) {
     uint8_t * aa = malloc(n_vertices * sizeof(uint8_t));  /* hypercube coloring being checked */
@@ -652,16 +653,16 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "I don't understand the second argument: must be 'all', 'strict', or '2'\n");
     exit(1);
   }
-  uint8_t global_count_any, global_count_iso;
+  bool global_count_any, global_count_iso;
   if (strcmp(argv[3], "any") == 0) {
-    global_count_any = 1;
-    global_count_iso = 0;
+    global_count_any = true;
+    global_count_iso = false;
   } else if (strcmp(argv[3], "iso") == 0) {
-    global_count_any = 0;
-    global_count_iso = 1;
+    global_count_any = false;
+    global_count_iso = true;
   } else if (strcmp(argv[3], "both") == 0) {
-    global_count_any = 1;
-    global_count_iso = 1;
+    global_count_any = true;
+    global_count_iso = true;
   } else {
     fprintf(stderr, "I don't understand the third argument: must be 'any', 'iso', or 'both'\n");
     exit(1);
