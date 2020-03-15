@@ -311,7 +311,7 @@ bool skippable(BitString * a, uint8_t d) {
 }
 
 void print(BitString * bits) {
-  uint8_t i = bits->size;
+  uint64_t i = bits->size;
   do {
     printf("%hhu", bits->m->nth_bit(bits, --i));
   } while (i != 0);
