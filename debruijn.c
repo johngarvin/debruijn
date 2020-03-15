@@ -59,8 +59,8 @@ const BitStringMethods BitStringMethodsArray = {
 };
 
 typedef struct BitStringS {
-  const BitStringMethods * m;
-  uint64_t size;
+  const BitStringMethods * const m;
+  const uint64_t size;
   union {
     uint64_t a;
     uint8_t * aa;
@@ -68,28 +68,32 @@ typedef struct BitStringS {
 } BitString;
 
 BitString * create_BitStringInt(uint64_t size, uint64_t a) {
-  BitString * b = (BitString *)malloc(sizeof(BitString));
-  b->m = &BitStringMethodsInt;
-  b->size = size;
-  b->data.a = a;
-  return b;
+  BitString * bp = (BitString *)malloc(sizeof(BitString));
+  BitString b = { .m = &BitStringMethodsInt,
+                  .size = size,
+                  { .a = a } };
+  memcpy(bp, &b, sizeof(BitString));
+  return bp;
 }
 
 BitString * create_BitStringArray(uint64_t size, uint8_t aa[size]) {
-  BitString * b = (BitString *)malloc(sizeof(BitString));
-  b->m = &BitStringMethodsArray;
-  b->size = size;
+  BitString * bp = (BitString *)malloc(sizeof(BitString));
+  BitString b = { .m = &BitStringMethodsArray,
+                  .size = size,
+                  { .aa = malloc(size * sizeof(uint8_t)) } };
   /* aa[n_vertices - 1] is most significant, aa[0] least significant */
-  b->data.aa = (uint8_t *)malloc(size * sizeof(uint8_t));
-  memcpy(b->data.aa, aa, size * sizeof(uint8_t));
-  return b;
+  memcpy(bp, &b, sizeof(BitString));
+  memcpy(bp->data.aa, aa, size * sizeof(uint8_t));
+  return bp;
 }
 
 void destroy_BitString_i(BitString * b) {
+  free(b);
 }
 
 void destroy_BitString_a(BitString * b) {
   free(b->data.aa);
+  free(b);
 }
 
 BitString * copy_BitString_i(BitString * self) {
