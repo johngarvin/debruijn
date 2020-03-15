@@ -462,8 +462,9 @@ bool is_interesting_coloring(ToShow show, uint64_t n, uint64_t x[n]) {
   exit(1);
 }
 
-/* Count squares in given pattern. Fills the contents of c_any and c_iso. */
-void count_squares(uint64_t c_any[16],
+/* Count squares in given pattern. Fills the contents of c_any and c_iso.
+ * Returns true if we are using strict counting and we stopped early. */
+bool count_squares(uint64_t c_any[16],
                    uint64_t c_iso[6],
                    uint8_t d,
                    BitString * b,
@@ -514,7 +515,7 @@ void count_squares(uint64_t c_any[16],
             count_iso = false;
           }
           if (!count_any && !count_iso) {
-            return;
+            return true;
           }
         }
 
@@ -525,6 +526,7 @@ void count_squares(uint64_t c_any[16],
       }
     }
   }
+  return false;
 }
 
 void find_hypercube_colorings(uint8_t d, ToShow show, bool global_count_any, bool global_count_iso, uint64_t a, uint64_t coloring) {
@@ -586,7 +588,10 @@ void find_hypercube_colorings(uint8_t d, ToShow show, bool global_count_any, boo
     }
 
     /* Now count squares. */
-    count_squares(c_any, c_iso, d, b, show, global_count_any, global_count_iso, perfect_per_bin_any, perfect_per_bin_iso);
+    bool stopped_early = count_squares(c_any, c_iso, d, b, show, global_count_any, global_count_iso, perfect_per_bin_any, perfect_per_bin_iso);
+    if (stopped_early) {
+      goto skip;
+    }
 
     /* depends on square */
     /* doesn't depend on single value (decides whether single value) */
