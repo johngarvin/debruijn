@@ -133,9 +133,8 @@ bool less_a(BitString * self, BitString * other) {
 
 /* Swap consecutive groups of 2^b bits with their neighbors. For example, b=0
  * swaps bit 0 with bit 1, bit 2 with bit 3, etc.; b=3 swaps bits 0-7 with bits
- * 8-15, bits 16-23 with bits 24-31, etc. Equivalently, let each bit position in
- * a be swapped with the bit position gotten by swapping 0 and 1 in the bth
- * bit. */
+ * 8-15, bits 16-23 with bits 24-31, etc. Equivalently: for each bit position x,
+ * let x' be x with the bth bit toggled; swap bit positions x and x'. */
 /* depends on 2 colors */
 /* doesn't depend on square */
 void toggle_bit_position_i(BitString * self, uint8_t b) {
