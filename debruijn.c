@@ -528,39 +528,24 @@ bool count_squares(uint64_t c_any[16],
   return false;
 }
 
-void find_hypercube_colorings(uint8_t d, ToShow show, bool global_count_any, bool global_count_iso, uint64_t a, uint64_t coloring) {
-  const uint64_t n_vertices = 1ULL << d;
+void find_hypercube_colorings(uint8_t d,
+                              ToShow show,
+                              bool global_count_any,
+                              bool global_count_iso,
+                              BitString * a)
+{
   uint64_t c_any[16];     /* count squares of each of 16 possible colorings */
   uint64_t c_iso[6];      /* count squares of each of 6 possible colorings up to
                            * isomorphism */
-  uint64_t i;
   bool last_combination;
 
-  printf("Beginning of find_hypercube_colorings. a=0x%llx coloring=%llu\n", a, coloring);
-
-  /* Initialize b. If n_vertices is small enough, the data will fit in a
-   * uint64_t; otherwise use an array */
-  /* depends on 2 colors */
-  /* doesn't depend on square */
-  BitString * b;
-  const bool need_big_a = (n_vertices > 64);
-
-  if (need_big_a) {
-    uint8_t * aa = malloc(n_vertices * sizeof(uint8_t));  /* hypercube coloring being checked */
-    for (i = 0; i < n_vertices / 2; i++) {
-      aa[i] = 1;
-    }
-    for (i = n_vertices / 2; i < n_vertices; i++) {
-      aa[i] = 0;
-    }
-    b = create_BitStringArray(n_vertices, aa);
-    free(aa);
-  } else {
-    b = create_BitStringInt(n_vertices, a);
-  }
+  uint64_t coloring = unrank(a);
+  printf("Beginning of find_hypercube_colorings. a=");
+  print(a);
+  printf(" coloring=%llu\n", coloring);
 
   /* number of colorings to check */
-  const uint64_t n_colorings = choose_half(n_vertices);
+  const uint64_t n_colorings = choose_half(a->size);
   uint64_t milestone_interval = 1ULL << 30;  /* print progress regularly */
   uint64_t milestone = coloring + milestone_interval;
 
@@ -579,15 +564,15 @@ void find_hypercube_colorings(uint8_t d, ToShow show, bool global_count_any, boo
   }
 
   for (; coloring < n_colorings; coloring++) {
-    assert(coloring == unrank(b));
+    assert(coloring == unrank(a));
 
     /* Skip if this pattern is a permutation of a pattern we've already seen */
-    if (skippable(b, d)) {
+    if (skippable(a, d)) {
       goto skip;
     }
 
     /* Now count squares. */
-    bool stopped_early = count_squares(c_any, c_iso, d, b, show, global_count_any, global_count_iso, perfect_per_bin_any, perfect_per_bin_iso);
+    bool stopped_early = count_squares(c_any, c_iso, d, a, show, global_count_any, global_count_iso, perfect_per_bin_any, perfect_per_bin_iso);
     if (stopped_early) {
       goto skip;
     }
@@ -597,12 +582,12 @@ void find_hypercube_colorings(uint8_t d, ToShow show, bool global_count_any, boo
     /* doesn't depend on 2 colors */
     if (global_count_any && is_interesting_coloring(show, 16, c_any)) {
       printf("any orientation:\t");
-      print_coloring(b, 16, c_any);
+      print_coloring(a, 16, c_any);
       fflush(stdout);
     }
     if (global_count_iso && is_interesting_coloring(show, 6, c_iso)) {
       printf("up to isomorphism:\t");
-      print_coloring(b, 6, c_iso);
+      print_coloring(a, 6, c_iso);
       fflush(stdout);
     }
 
@@ -611,7 +596,7 @@ void find_hypercube_colorings(uint8_t d, ToShow show, bool global_count_any, boo
     /* doesn't depend on square */
     /* depends on single value */
   skip:
-    last_combination = b->m->increment_combination(b);
+    last_combination = a->m->increment_combination(a);
     if (last_combination) {
       break;
     }
@@ -619,18 +604,21 @@ void find_hypercube_colorings(uint8_t d, ToShow show, bool global_count_any, boo
     /* print progress */
     /* no dependences */
     if (coloring == milestone) {
-      printf("%f%% a=0x%016llx coloring=%llu/%llu\n", (double)coloring * 100 / n_colorings, a, coloring, n_colorings);
+      printf("%f%% a=", (double)coloring * 100 / n_colorings);
+      print(a);
+      printf(" coloring=%llu/%llu\n", coloring, n_colorings);
       fflush(stdout);
       milestone += milestone_interval;
     }
   }
-  b->m->destroy(b);
+  a->m->destroy(a);
 }
 
 /* depends on square */
 /* depends on 2 colors */
 /* doesn't depend on single value */
 int main(int argc, char *argv[]) {
+  uint64_t a_arg = 0;
   if (argc < 4) {
     fprintf(stderr, "What?\n");
     exit(1);
@@ -671,11 +659,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "I don't understand the third argument: must be 'any', 'iso', or 'both'\n");
     exit(1);
   }
-  uint64_t a = (1ULL << (1ULL << (d - 1))) - 1;
-  uint64_t coloring = 0;
   if (argc == 5) {
-    fprintf(stderr, "I see a fourth argument 'a' but not a fifth argument 'coloring'\n");
-  } else if (argc == 6) {
     uintmax_t a_big = strtoumax(argv[4], &end, 0);
     if (end[0] != '\0' || a_big > UINT64_MAX) {
       fprintf(stderr, "I don't understand the fourth argument a\n");
@@ -685,18 +669,33 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "The fourth argument 'a' is too big\n");
       exit(1);
     }
-    a = (uint64_t)a_big;
-    uintmax_t coloring_big = strtoumax(argv[5], &end, 0);
-    if (end[0] != '\0') {
-      fprintf(stderr, "I don't understand the fifth argument 'coloring'.\n");
-      exit(1);
-    }
-    if (coloring_big > UINT64_MAX || errno == ERANGE) {
-      fprintf(stderr, "The fifth argument 'coloring' is too big.\n");
-      exit(1);
-    }
-    coloring = (uint64_t)coloring_big;
+    a_arg = (uint64_t)a_big;
   }
-  find_hypercube_colorings(d, show, global_count_any, global_count_iso, a, coloring);
+
+  /* Initialize a. If n_vertices is small enough, the data will fit in a
+   * uint64_t; otherwise use an array */
+  /* depends on 2 colors */
+  /* doesn't depend on square */
+  BitString * a;
+  const uint64_t n_vertices = 1ULL << d;
+  const bool need_big_a = (n_vertices > 64);
+
+  if (need_big_a) {
+    uint8_t * aa = malloc(n_vertices * sizeof(uint8_t));  /* hypercube coloring being checked */
+    for (uint64_t i = 0; i < n_vertices / 2; i++) {
+      aa[i] = 1;
+    }
+    for (uint64_t i = n_vertices / 2; i < n_vertices; i++) {
+      aa[i] = 0;
+    }
+    a = create_BitStringArray(n_vertices, aa);
+    free(aa);
+  } else {
+    /* first half bits 0, second half bits 1 */
+    uint64_t a_default = (1ULL << (1ULL << (d - 1))) - 1;
+    a = create_BitStringInt(n_vertices, a_arg != 0 ? a_arg : a_default);
+  }
+
+  find_hypercube_colorings(d, show, global_count_any, global_count_iso, a);
   return 0;
 }
