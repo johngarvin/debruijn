@@ -13,6 +13,10 @@ const uint64_t mask[6] = {0x5555555555555555,
                           0x0000ffff0000ffff,
                           0x00000000ffffffff};
 
+uint64_t vertices(uint8_t dim) {
+  return 1ULL << dim;
+}
+
 typedef struct BitStringS BitString;
 void destroy_BitString_i(BitString * self);
 void destroy_BitString_a(BitString * self);
@@ -66,28 +70,32 @@ const BitStringMethods BitStringMethodsArray = {
 
 typedef struct BitStringS {
   const BitStringMethods * const m;
-  const uint64_t size;
+  const uint8_t dim;     /* Dimension of hypercube */
+  const uint64_t size;   /* Number of vertices, equal to 2^dim */
   union {
     uint64_t a;
     uint8_t * aa;
   } data;
 } BitString;
 
-BitString * create_BitStringInt(uint64_t size, uint64_t a) {
+BitString * create_BitStringInt(uint8_t dim, uint64_t a) {
   BitString * bp = (BitString *)malloc(sizeof(BitString));
   BitString b = { .m = &BitStringMethodsInt,
-                  .size = size,
+                  .dim = dim,
+                  .size = 1ULL << dim,
                   { .a = a } };
   memcpy(bp, &b, sizeof(BitString));
   return bp;
 }
 
-BitString * create_BitStringArray(uint64_t size, uint8_t aa[size]) {
+BitString * create_BitStringArray(uint8_t dim, uint8_t aa[vertices(dim)]) {
+  const uint64_t size = vertices(dim);
   BitString * bp = (BitString *)malloc(sizeof(BitString));
   BitString b = { .m = &BitStringMethodsArray,
+                  .dim = dim,
                   .size = size,
                   { .aa = malloc(size * sizeof(uint8_t)) } };
-  /* aa[n_vertices - 1] is most significant, aa[0] least significant */
+  /* aa[size - 1] is most significant, aa[0] least significant */
   memcpy(bp, &b, sizeof(BitString));
   memcpy(bp->data.aa, aa, size * sizeof(uint8_t));
   return bp;
@@ -103,11 +111,11 @@ void destroy_BitString_a(BitString * b) {
 }
 
 BitString * make_copy_BitString_i(BitString * self) {
-  return create_BitStringInt(self->size, self->data.a);
+  return create_BitStringInt(self->dim, self->data.a);
 }
 
 BitString * make_copy_BitString_a(BitString * self) {
-  return create_BitStringArray(self->size, self->data.aa);
+  return create_BitStringArray(self->dim, self->data.aa);
 }
 
 void copy_from_i(BitString * self, BitString * other) {
@@ -264,7 +272,7 @@ bool increment_combination_a(BitString * self) {
   return false;
 }
 
-bool skippable(BitString * a, uint8_t d) {
+bool skippable(BitString * a) {
   uint64_t i;
   uint8_t k;
 
@@ -281,7 +289,7 @@ bool skippable(BitString * a, uint8_t d) {
   /* doesn't depend on square */
   /* depends on 2 colors */
   BitString * toggled = a->m->make_copy(a);
-  for (i = 0; i < d; i++) {
+  for (i = 0; i < a->dim; i++) {
     toggled->m->toggle_bit_position(toggled, i);
     if (toggled->m->less(toggled, a)) {
       toggled->m->destroy(toggled);
@@ -297,14 +305,14 @@ bool skippable(BitString * a, uint8_t d) {
    * iterate through all axis permutations using swaps */
   /* doesn't depend on square */
   /* depends on 2 colors */
-  uint8_t c[d+1];
+  uint8_t c[a->dim + 1];
   BitString * perm = a->m->make_copy(a);
-  for (i = 0; i < d + 1; i++) {
+  for (i = 0; i < a->dim + 1; i++) {
     c[i] = 0;
   }
 
   k = 0;
-  while (k < d) {
+  while (k < a->dim) {
     if (c[k] < k) {
       if ((k & 1) == 0) {
         perm->m->swap_bit_positions(perm, 0, k);
@@ -482,7 +490,6 @@ bool is_interesting_coloring(ToShow show, uint64_t n, uint64_t x[n]) {
  * Returns true if we are using strict counting and we stopped early. */
 bool count_squares(uint64_t c_any[16],
                    uint64_t c_iso[6],
-                   uint8_t d,
                    BitString * b,
                    ToShow show,
                    bool global_count_any,
@@ -507,8 +514,8 @@ bool count_squares(uint64_t c_any[16],
   /* for each square indicated by bit positions di and dj */
   /* depends on square */
   /* depends on 2 colors */
-  for (di = 0; di < d - 1; di++) {
-    for (dj = di + 1; dj < d; dj++) {
+  for (di = 0; di < b->dim - 1; di++) {
+    for (dj = di + 1; dj < b->dim; dj++) {
       n = 0;
       while (n != b->size) {
         square = b->m->nth_bit(b, n) << 3 |                          /* 00 */
@@ -545,8 +552,7 @@ bool count_squares(uint64_t c_any[16],
   return false;
 }
 
-void find_hypercube_colorings(uint8_t d,
-                              ToShow show,
+void find_hypercube_colorings(ToShow show,
                               bool global_count_any,
                               bool global_count_iso,
                               BitString * a)
@@ -569,7 +575,7 @@ void find_hypercube_colorings(uint8_t d,
   /* number of colorings in each bin if it were a perfect de Bruijn coloring */
   /* depends on square */
   /* depends on 2 colors */
-  const uint64_t n_squares = hypercube_squares(d);
+  const uint64_t n_squares = hypercube_squares(a->dim);
   const uint64_t perfect_per_bin_any = n_squares / 16;
   const uint64_t perfect_per_bin_iso = n_squares / 6;
   if (show == SHOW_STRICT) {
@@ -585,12 +591,12 @@ void find_hypercube_colorings(uint8_t d,
     assert(coloring == unrank(a));
 
     /* Skip if this pattern is a permutation of a pattern we've already seen */
-    if (skippable(a, d)) {
+    if (skippable(a)) {
       goto skip;
     }
 
     /* Now count squares. */
-    const bool stopped_early = count_squares(c_any, c_iso, d, a, show, global_count_any, global_count_iso, perfect_per_bin_any, perfect_per_bin_iso);
+    const bool stopped_early = count_squares(c_any, c_iso, a, show, global_count_any, global_count_iso, perfect_per_bin_any, perfect_per_bin_iso);
     if (stopped_early) {
       goto skip;
     }
@@ -642,16 +648,16 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
   char * end;
-  unsigned long d_big = strtoul(argv[1], &end, 0);
+  unsigned long dim_big = strtoul(argv[1], &end, 0);
   if (end[0] != '\0') {
-    fprintf(stderr, "I don't understand the first argument d (%lu)\n", d_big);
+    fprintf(stderr, "I don't understand the first argument d (%lu)\n", dim_big);
     exit(1);
   }
-  if (d_big > 6) {
+  if (dim_big > 6) {
     fprintf(stderr, "The first argument d is too big (max 6)\n");
     exit(1);
   }
-  uint8_t d = (uint8_t)d_big;
+  uint8_t dim = (uint8_t)dim_big;
   ToShow show;
   if (strcmp(argv[2], "all") == 0) {
     show = SHOW_ALL;
@@ -695,7 +701,7 @@ int main(int argc, char *argv[]) {
   /* depends on 2 colors */
   /* doesn't depend on square */
   BitString * a;
-  const uint64_t n_vertices = 1ULL << d;
+  const uint64_t n_vertices = vertices(dim);
   const bool need_big_a = (n_vertices > 64);
 
   if (need_big_a) {
@@ -706,14 +712,14 @@ int main(int argc, char *argv[]) {
     for (uint64_t i = n_vertices / 2; i < n_vertices; i++) {
       aa[i] = 0;
     }
-    a = create_BitStringArray(n_vertices, aa);
+    a = create_BitStringArray(dim, aa);
     free(aa);
   } else {
     /* first half bits 0, second half bits 1 */
-    uint64_t a_default = (1ULL << (1ULL << (d - 1))) - 1;
-    a = create_BitStringInt(n_vertices, a_arg != 0 ? a_arg : a_default);
+    const uint64_t a_default = (1ULL << (1ULL << (dim - 1))) - 1;
+    a = create_BitStringInt(dim, a_arg != 0 ? a_arg : a_default);
   }
 
-  find_hypercube_colorings(d, show, global_count_any, global_count_iso, a);
+  find_hypercube_colorings(show, global_count_any, global_count_iso, a);
   return 0;
 }
