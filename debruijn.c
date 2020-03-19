@@ -14,10 +14,12 @@ const uint64_t mask[6] = {0x5555555555555555,
                           0x00000000ffffffff};
 
 typedef struct BitStringS BitString;
-BitString * copy_BitString_i(BitString * self);
-BitString * copy_BitString_a(BitString * self);
 void destroy_BitString_i(BitString * self);
 void destroy_BitString_a(BitString * self);
+BitString * make_copy_BitString_i(BitString * self);
+BitString * make_copy_BitString_a(BitString * self);
+void copy_from_i(BitString * self, BitString * other);
+void copy_from_a(BitString * self, BitString * other);
 bool less_i(BitString * self, BitString * other);
 bool less_a(BitString * self, BitString * other);
 uint8_t nth_bit_i(BitString * self, uint8_t n);
@@ -30,8 +32,9 @@ bool increment_combination_i(BitString * self);
 bool increment_combination_a(BitString * self);
 
 typedef struct BitStringMethodsS {
-  BitString * (* copy)(BitString * self);
   void (* destroy)(BitString * self);
+  BitString * (* make_copy)(BitString * self);
+  void (* copy_from)(BitString * self, BitString * other);
   bool (* less)(BitString * self, BitString * other);
   uint8_t (* nth_bit)(BitString * self, uint8_t n);
   void (* toggle_bit_position)(BitString * self, uint8_t b);
@@ -40,8 +43,9 @@ typedef struct BitStringMethodsS {
 } BitStringMethods;
 
 const BitStringMethods BitStringMethodsInt = {
-  &copy_BitString_i,
   &destroy_BitString_i,
+  &make_copy_BitString_i,
+  &copy_from_i,
   &less_i,
   &nth_bit_i,
   &toggle_bit_position_i,
@@ -50,8 +54,9 @@ const BitStringMethods BitStringMethodsInt = {
 };
 
 const BitStringMethods BitStringMethodsArray = {
-  &copy_BitString_a,
   &destroy_BitString_a,
+  &make_copy_BitString_a,
+  &copy_from_a,
   &less_a,
   &nth_bit_a,
   &toggle_bit_position_a,
@@ -97,12 +102,24 @@ void destroy_BitString_a(BitString * b) {
   free(b);
 }
 
-BitString * copy_BitString_i(BitString * self) {
+BitString * make_copy_BitString_i(BitString * self) {
   return create_BitStringInt(self->size, self->data.a);
 }
 
-BitString * copy_BitString_a(BitString * self) {
+BitString * make_copy_BitString_a(BitString * self) {
   return create_BitStringArray(self->size, self->data.aa);
+}
+
+void copy_from_i(BitString * self, BitString * other) {
+  assert(self->size == other->size);
+  self->data.a = other->data.a;
+}
+
+void copy_from_a(BitString * self, BitString * other) {
+  assert(self->size == other->size);
+  for (uint64_t i = 0; i < self->size; i++) {
+    self->data.aa[i] = other->data.aa[i];
+  }
 }
 
 uint8_t nth_bit_i(BitString * self, uint8_t n) {
@@ -263,7 +280,7 @@ bool skippable(BitString * a, uint8_t d) {
   /* depends on single value */
   /* doesn't depend on square */
   /* depends on 2 colors */
-  BitString * toggled = a->m->copy(a);
+  BitString * toggled = a->m->make_copy(a);
   for (i = 0; i < d; i++) {
     toggled->m->toggle_bit_position(toggled, i);
     if (toggled->m->less(toggled, a)) {
@@ -281,7 +298,7 @@ bool skippable(BitString * a, uint8_t d) {
   /* doesn't depend on square */
   /* depends on 2 colors */
   uint8_t c[d+1];
-  BitString * perm = a->m->copy(a);
+  BitString * perm = a->m->make_copy(a);
   for (i = 0; i < d + 1; i++) {
     c[i] = 0;
   }
