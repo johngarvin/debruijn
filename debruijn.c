@@ -546,20 +546,21 @@ void find_hypercube_colorings(uint8_t d,
 
   /* number of colorings to check */
   const uint64_t n_colorings = choose_half(a->size);
-  uint64_t milestone_interval = 1ULL << 30;  /* print progress regularly */
+  const uint64_t milestone_interval = 1ULL << 30;  /* print progress regularly */
   uint64_t milestone = coloring + milestone_interval;
 
   /* number of colorings in each bin if it were a perfect de Bruijn coloring */
   /* depends on square */
   /* depends on 2 colors */
-  uint64_t perfect_per_bin_any = hypercube_squares(d) / 16;
-  uint64_t perfect_per_bin_iso = hypercube_squares(d) / 6;
+  const uint64_t n_squares = hypercube_squares(d);
+  const uint64_t perfect_per_bin_any = n_squares / 16;
+  const uint64_t perfect_per_bin_iso = n_squares / 6;
   if (show == SHOW_STRICT) {
-    if (hypercube_squares(d) % 16 != 0) {
-      printf("Note: no de Bruijn coloring will be found for the 16 square colorings because the number of squares (%llu) is not divisible by 16.\n", hypercube_squares(d));
+    if (n_squares % 16 != 0) {
+      printf("Note: no de Bruijn coloring will be found for the 16 square colorings because the number of squares (%llu) is not divisible by 16.\n", n_squares);
     }
-    if (hypercube_squares(d) % 6 != 0) {
-      printf("Note: no de Bruijn coloring will be found for the 6 square colorings up to isomorphism because the number of squares (%llu) is not divisible by 6.\n", hypercube_squares(d));
+    if (n_squares % 6 != 0) {
+      printf("Note: no de Bruijn coloring will be found for the 6 square colorings up to isomorphism because the number of squares (%llu) is not divisible by 6.\n", n_squares);
     }
   }
 
@@ -572,7 +573,7 @@ void find_hypercube_colorings(uint8_t d,
     }
 
     /* Now count squares. */
-    bool stopped_early = count_squares(c_any, c_iso, d, a, show, global_count_any, global_count_iso, perfect_per_bin_any, perfect_per_bin_iso);
+    const bool stopped_early = count_squares(c_any, c_iso, d, a, show, global_count_any, global_count_iso, perfect_per_bin_any, perfect_per_bin_iso);
     if (stopped_early) {
       goto skip;
     }
