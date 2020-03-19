@@ -309,7 +309,7 @@ bool skippable(BitString * a, uint8_t d) {
   return false;
 }
 
-void print(BitString * bits) {
+void print_binary(BitString * bits) {
   uint64_t i = bits->size;
   do {
     printf("%hhu", bits->m->nth_bit(bits, --i));
@@ -318,7 +318,7 @@ void print(BitString * bits) {
 
 void print_coloring(BitString * bits, uint64_t n, uint64_t c[n]) {
   uint64_t i;
-  print(bits);
+  print_binary(bits);
   printf("\t");
   for (i = 0; i < n; i++) {
     printf("%llu ", c[i]);
@@ -540,8 +540,8 @@ void find_hypercube_colorings(uint8_t d,
   bool last_combination;
 
   uint64_t coloring = unrank(a);
-  printf("Beginning of find_hypercube_colorings. a=");
-  print(a);
+  printf("Finding hypercube colorings. a=0b");
+  print_binary(a);
   printf(" coloring=%llu\n", coloring);
 
   /* number of colorings to check */
@@ -604,8 +604,8 @@ void find_hypercube_colorings(uint8_t d,
     /* print progress */
     /* no dependences */
     if (coloring == milestone) {
-      printf("%f%% a=", (double)coloring * 100 / n_colorings);
-      print(a);
+      printf("%f%% a=0b", (double)coloring * 100 / n_colorings);
+      print_binary(a);
       printf(" coloring=%llu/%llu\n", coloring, n_colorings);
       fflush(stdout);
       milestone += milestone_interval;
