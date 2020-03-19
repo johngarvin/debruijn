@@ -556,10 +556,10 @@ void find_hypercube_colorings(uint8_t d,
   const uint64_t perfect_per_bin_any = n_squares / 16;
   const uint64_t perfect_per_bin_iso = n_squares / 6;
   if (show == SHOW_STRICT) {
-    if (n_squares % 16 != 0) {
+    if (global_count_any && n_squares % 16 != 0) {
       printf("Note: no de Bruijn coloring will be found for the 16 square colorings because the number of squares (%llu) is not divisible by 16.\n", n_squares);
     }
-    if (n_squares % 6 != 0) {
+    if (global_count_iso && n_squares % 6 != 0) {
       printf("Note: no de Bruijn coloring will be found for the 6 square colorings up to isomorphism because the number of squares (%llu) is not divisible by 6.\n", n_squares);
     }
   }
