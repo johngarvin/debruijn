@@ -13,9 +13,14 @@ const uint64_t mask[6] = {0x5555555555555555,
                           0x0000ffff0000ffff,
                           0x00000000ffffffff};
 
+/* Number of vertices of a hypercube of dim dimensions */
 uint64_t vertices(uint8_t dim) {
   return 1ULL << dim;
 }
+
+/* BitString is a data type representing an array of bits. We represent it as
+ * either an integer or an array, and use a C version of object-oriented
+ * programming to provide two versions of each method. */
 
 typedef struct BitStringS BitString;
 void destroy_BitString_i(BitString * self);
